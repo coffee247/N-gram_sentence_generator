@@ -4,6 +4,9 @@
 James M. Stallings
 Student ID V00859712
 
+TODO try this REGEX --> ([\S]+?[[\S\s]+?(?:[\.?!]))
+    https://regex101.com/r/4HlcNd/1
+
 '''
 
 import re
@@ -39,6 +42,8 @@ def main():
 
     for i in range(3, len(sys.argv), 1):
         filetext = "{} {}".format(filetext, readfile(i))
+        filetext = filetext.replace('\n', '')
+        filetext = filetext.replace('  ', ' ')
     filetext = re.compile(r'[?.!]\s+').split(filetext)
     print(filetext)
 
