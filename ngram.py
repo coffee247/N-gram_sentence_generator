@@ -4,8 +4,9 @@
 James M. Stallings
 Student ID V00859712
 
-TODO try this REGEX --> ([\S]+?[[\S\s]+?(?:[\.?!]))
-    https://regex101.com/r/4HlcNd/1
+No stopwords
+No smoothing
+No non-contiguous ngrams
 
 '''
 
@@ -44,9 +45,9 @@ def main():
         filetext = "{} {}".format(filetext, readfile(i))
     filetext = filetext.lstrip()
     filetext = re.sub(r'[\[\]_]','',filetext.rstrip())  # remove [ and ] characters
-    filetext = re.sub(r'(\n)',' ',filetext)  # turn newlines into spaces
+    filetext = re.sub(r'\s+',' ',filetext)  # turn newlines into spaces
     filetext = re.sub(r'(\")','',filetext)  # remove double quotes
-    filetext = re.sub(r'(\.{2,})', ' ', filetext)  # remove multiple periods
+    filetext = re.sub(r'\.{2,}', '', filetext)  # remove multiple periods
     filetext = re.sub(r'(\-{2,})', ' ', filetext)  # remove multiple hyphens
     filetext = re.sub(r'(\s{2,})', ' ', filetext)  # remove multiple whitespace characters
     filetext = re.sub(r'[!] ', '!\n', filetext)  # add newline after exclamation
