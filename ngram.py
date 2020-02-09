@@ -51,12 +51,12 @@ def cleanText(filetext):
     filetext = filetext.lstrip()
     filetext = filetext.lower()
     filetext = re.sub(r'[\[\]\(\):,_]', '', filetext)  # remove colon, comma, [ and ] characters,
-    filetext = re.sub(r'[\"\”\“\*\’\‘]', '', filetext)  # remove quote marks and *
+    filetext = re.sub(r'[\"\”\“\*\‘]', '', filetext)  # remove quote marks and *
+    filetext = re.sub(r'(\’\s)', ' ', filetext)
     filetext = re.sub(r'(\n)', ' ', filetext)  # turn newlines into spaces
     filetext = re.sub(r'(\s{2,})', ' ', filetext)  # remove multiple whitespace characters
     filetext = re.sub(r'(\.{2,})', ' ', filetext)  # remove multiple periods
     filetext = re.sub(r'(\-{2,})', ' ', filetext)  # remove multiple hyphens
-    filetext = re.sub(r'(\—)', ' ', filetext)  # replace long dash with space
     filetext = re.sub(r'(\s{2,})', ' ', filetext)  # remove multiple whitespace characters
     filetext = re.sub(r'[!] ', ' !\n', filetext)  # add newline after exclamation
     filetext = re.sub(r'[.] ', ' .\n', filetext)  # add newline after period
@@ -114,6 +114,8 @@ def getNgramRawFreq(nGramTable, instr):
 
 def main():
     filetext = ""
+    start = '<start> '
+    end = ' <end>'
     n = int(sys.argv[1])
     m = int(sys.argv[2])
     firstwords = []
@@ -147,8 +149,16 @@ def main():
 
     makeNgramTable(filetext, n, lookupTable)
     makeRelFreqTable(unigram_table, lookupTable, relFreqTable)
-    print(relFreqTable['named the empress']['anna'])
-    print(relFreqTable['falling into angry']['discussions'])
+    startkey = "{}".format((n-1)*start).lstrip().rstrip()
+    startword = random.choice(list(lookupTable[startkey]))
+    for x in range(m):
+        words = []
+        weights = []
+        for wordToWeight in (list(lookupTable[startkey])):
+            words.append(wordToWeight)
+            weights.append(relFreqTable[startkey][wordToWeight])
+        nextWord = random.choices(words, weights)
+        print(nextWord[0])
 
 if __name__ == '__main__':
     main()
