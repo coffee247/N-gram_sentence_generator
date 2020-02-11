@@ -15,6 +15,7 @@ from _collections import defaultdict
 startkey = ""
 start = '<start> '
 end = ' <end>'
+tokenCount = 0
 
 
 def readfile(fileAtIndex):
