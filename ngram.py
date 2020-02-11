@@ -9,11 +9,9 @@ Student ID V00859712
 
 import re
 import sys
-import logging
 import random
 from _collections import defaultdict
 
-logging.basicConfig(filename='debug.log', level=logging.DEBUG)
 startkey = ""
 start = '<start> '
 end = ' <end>'
@@ -26,7 +24,6 @@ def readfile(fileAtIndex):
         file.close()
         return filetext
     except:
-        logging.info('Exception:  error loading file %s', sys.argv[fileAtIndex])
         print("{} \n\tException:  error loading file {}\n\tApplication will quit so you can try again!\n{}".format("*"*72, sys.argv[fileAtIndex], "*"*72))
         input("press ENTER key to continue quitting\n\n")
         print("Bye!\n\n")
@@ -51,7 +48,7 @@ def getwordCount(str):
 def cleanText(filetext):
     filetext = filetext.lstrip()
     filetext = filetext.lower()
-    filetext = re.sub(r'[\[\]\(\):;,_]', '', filetext)  # remove colon, comma, [ and ] characters,
+    filetext = re.sub(r'[\[\]\(\):;,_—]', '', filetext)  # remove colon, comma, [ and ] characters,
     filetext = re.sub(r'[\"\”\“\*\‘]', '', filetext)  # remove quote marks and *
     filetext = re.sub(r'(\’\s)', ' ', filetext)
     filetext = re.sub(r'(\n)', ' ', filetext)  # turn newlines into spaces
@@ -75,10 +72,10 @@ def makeCodedSentences(filetext, n):
     return newList
 
 def makeNgramTable(filetext, n, lookupTable):
-
-    for line in filetext:
-        words = line.split(' ')
-        for j in range(len(words)-n):
+    count = 0
+    for line in filetext:  # for each line in the corpus
+        words = line.split(' ')  # break the line into individual words
+        for j in range(len(words)-n):  # for each word in a line
             ngram = ""
             k = j + n-1
             for l in range(j, k, 1):
@@ -160,58 +157,82 @@ def main():
     for line in filetext:
         unigram_table = makeUnigramTable(line, counts)
 
-    ''' construct the n-gram raw frequency table'''
-    makeNgramTable(filetext, n, ngramTable)
+    if n > 1:
 
-    ''' construct the n-gram relative frequency table '''
-    makeRelFreqTable(unigram_table, ngramTable, relFreqTable)
+        ''' construct the n-gram raw frequency table'''
+        makeNgramTable(filetext, n, ngramTable)
 
-    ''' Make m sentences'''
-    for x in range(m):  # for each sentence
+        ''' construct the n-gram relative frequency table '''
+        makeRelFreqTable(unigram_table, ngramTable, relFreqTable)
 
-        atend = False
+        ''' Make m sentences'''
+        for x in range(m):  # for each sentence
 
-        ''' construct the startkey    (in the form <start> <start> .... <start>) having n-1 <start> tags '''
-        startkey = "{}".format((n - 1) * start).lstrip().rstrip()
+            atend = False
 
-        ''' pick a startword at random from first words in filetext sentences '''
-        startword = random.choice(list(ngramTable[startkey]))
-        sentence = startword
+            ''' construct the startkey    (in the form <start> <start> .... <start>) having n-1 <start> tags '''
+            startkey = "{}".format((n - 1) * start).lstrip().rstrip()
 
-        ''' revise the startkey with startword '''
-        startkey = moveNgramWindow(startkey, startword, n - 1)
+            ''' pick a startword at random from first words in filetext sentences '''
+            startword = random.choice(list(ngramTable[startkey]))
+            sentence = startword
 
-        ''' build sentence until end detected '''
-        while not atend:
-            words = []
-            weights = []
+            ''' revise the startkey with startword '''
+            startkey = moveNgramWindow(startkey, startword, n - 1)
 
-            ''' construct matching word and weight lists for current key '''
-            for ngramWordsFromKey in (list(ngramTable[startkey])):
-                if not ngramWordsFromKey == '':
-                    words.append(ngramWordsFromKey)
-                    weights.append(relFreqTable[startkey][ngramWordsFromKey])
+            ''' build sentence until end detected '''
+            while not atend:
+                words = []
+                weights = []
 
-            ''' 
-            build a sentence by selecting weighted random word from words list and adding it to sentence.
-            in the except block (catches end of sentence), append sentence to sentences list
-            '''
-            try:
-                nextWordString = listToString(random.choices(words, weights=weights))
-                sentence = sentence + ' ' + nextWordString  # add next word to sentence
+                ''' construct matching word and weight lists for current key '''
+                for ngramWordsFromKey in (list(ngramTable[startkey])):
+                    if not ngramWordsFromKey == '':
+                        words.append(ngramWordsFromKey)
+                        weights.append(relFreqTable[startkey][ngramWordsFromKey])
 
                 ''' 
-                revise startkey by appending nextWordString and trimming
-                words from the left until only n-1 words remain.
+                build a sentence by selecting weighted random word from words list and adding it to sentence.
+                in the except block (catches end of sentence), append sentence to sentences list
                 '''
-                startkey = moveNgramWindow(startkey, nextWordString, n - 1)
-            except:
-                atend = True  # end of sentence was detected
-        sentence = re.sub(r'( \.)', '.', sentence)
-        sentence = re.sub(r'( \!)', '!', sentence)
-        sentence = re.sub(r'( \?)', '?', sentence)
-        print("{}".format(sentence.capitalize()))
-    print("\n")
+                try:
+                    nextWordString = listToString(random.choices(words, weights=weights))
+                    sentence = sentence + ' ' + nextWordString  # add next word to sentence
+
+                    ''' 
+                    revise startkey by appending nextWordString and trimming
+                    words from the left until only n-1 words remain.
+                    '''
+                    startkey = moveNgramWindow(startkey, nextWordString, n - 1)
+                except:
+                    atend = True  # end of sentence was detected
+            sentence = re.sub(r'( \.)', '.', sentence)  # move puctuation to left one space
+            sentence = re.sub(r'( \!)', '!', sentence)  # move puctuation to left one space
+            sentence = re.sub(r'( \?)', '?', sentence)  # move puctuation to left one space
+            print("{}".format(sentence.capitalize()))  # Display the sentence
+        print("\n")
+    else:
+        '''
+        deal with unigrams by creating random length sentences from random 
+        words found in corpus.
+        '''
+        sentences = []
+        for sentenceCount in range(m):
+            count = 0
+            sentence = ""
+            lim = random.randint(1, 15)
+            while count <= lim:
+                word = random.choice(((list(unigram_table))))
+                if word not in ['<start>','<end>','.','!','?']:
+                    sentence = sentence + ' ' + word
+                    count = count + 1
+            sentence = str(sentence + random.choice(['.','!','?'])).lstrip()  # add random punctuation at sentence end.
+            sentence = ("{}".format(sentence.capitalize()))  # capitalize first letter
+            sentences.append(sentence)  # add sentence to list of sentences
+        for i in range(m):  # we are making m sentences (m is the number of sentences tpo make)
+            print(sentences[i])  # dsiplay the sentences
+        print("")  # display a blank line before exiting.
+
 
 if __name__ == '__main__':
     main()
