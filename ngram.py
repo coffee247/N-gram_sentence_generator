@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 '''
+
 James M. Stallings
 Student ID V00859712
-
-TODO try this REGEX --> ([\S]+?[[\S\s]+?(?:[\.?!]))
-    https://regex101.com/r/4HlcNd/1
 
 '''
 
@@ -16,6 +14,9 @@ import random
 from _collections import defaultdict
 
 logging.basicConfig(filename='debug.log', level=logging.DEBUG)
+startkey = ""
+start = '<start> '
+end = ' <end>'
 
 
 def readfile(fileAtIndex):
@@ -50,7 +51,7 @@ def getwordCount(str):
 def cleanText(filetext):
     filetext = filetext.lstrip()
     filetext = filetext.lower()
-    filetext = re.sub(r'[\[\]\(\):,_]', '', filetext)  # remove colon, comma, [ and ] characters,
+    filetext = re.sub(r'[\[\]\(\):;,_]', '', filetext)  # remove colon, comma, [ and ] characters,
     filetext = re.sub(r'[\"\”\“\*\‘]', '', filetext)  # remove quote marks and *
     filetext = re.sub(r'(\’\s)', ' ', filetext)
     filetext = re.sub(r'(\n)', ' ', filetext)  # turn newlines into spaces
@@ -61,16 +62,14 @@ def cleanText(filetext):
     filetext = re.sub(r'[!] ', ' !\n', filetext)  # add newline after exclamation
     filetext = re.sub(r'[.] ', ' .\n', filetext)  # add newline after period
     filetext = re.sub(r'[?] ', ' ?\n', filetext)  # add newline after question mark
+    filetext = re.sub(r'(\﻿) ', '', filetext)  # remove UTF-8 NULL character
     return filetext
 
 def makeCodedSentences(filetext, n):
-    n = n-1
-    start = '<start> '
-    end = ' <end>'
     newList = []
     for line in filetext:
         sentence = str(line)
-        if (getwordCount(sentence) >= n):
+        if (getwordCount(sentence) >= n-1):
             sentence = "{}{}{}".format(n*start, sentence, end)
             newList.append(sentence)
     return newList
@@ -111,54 +110,105 @@ def getNgramRawFreq(nGramTable, instr):
     returnString = nGramTable[instr]
     return int(returnString)
 
+def listToString(alist):
+    # initialize an empty string
+    str1 = " "
+    # return string
+    return (str1.join(alist))
 
-def main():
-    filetext = ""
-    start = '<start> '
-    end = ' <end>'
-    n = int(sys.argv[1])
-    m = int(sys.argv[2])
-    firstwords = []
-    lookupTable = defaultdict(dict)
-    counts = dict()
-    relFreqTable = defaultdict(dict)
+def moveNgramWindow(loopkey, nextWordString, n):
+    loopkey = loopkey + ' ' + nextWordString
+    alpha = loopkey.split(' ')
+    length = len(alpha)
+    alpha = alpha[length - (n):length]
+    loopkey = listToString(alpha)
+    return loopkey
 
-
+def printIntroData(n, m):
     print("\nThis program generates random sentences based on an Ngram model."
           "\nAuthored by: James M. Stallings\nVCU student ID: V00859712\n\n")
     print("Command line settings:  {} {} {}".format(sys.argv[0], n, m))
 
+def openAndReadInputFiles():
+    filetext = ""
     for i in range(3, len(sys.argv), 1):  # for each input file ...
-
         '''read the file into memory as a string object & append to filetext '''
         filetext = "{} {}".format(filetext, readfile(i))
+    return filetext
+
+
+def main():
+    start = '<start> '
+    n = int(sys.argv[1])
+    m = int(sys.argv[2])
+    ngramTable = defaultdict(dict)
+    counts = dict()
+    relFreqTable = defaultdict(dict)
+
+    ''' display required intro data '''
+    printIntroData(n, m)
+
+    ''' read files from disk '''
+    filetext = openAndReadInputFiles()
 
     ''' prepare the text for processing '''
-    filetext = cleanText(filetext)
+    filetext = cleanText(filetext)  # regex operations
+    filetext = filetext.split('\n')  # create list of sentences from filetext.
+    filetext = makeCodedSentences(filetext, int(n))  #  add <start> and <end> tags
 
-
-
-    filetext = filetext.split('\n')  # create new list from filetext split on newline.
-    filetext = makeCodedSentences(filetext, int(n))
+    ''' construct the unigram raw frequency table '''
     for line in filetext:
-        ''' produce a Unigram table of raw frequencies '''
         unigram_table = makeUnigramTable(line, counts)
 
+    ''' construct the n-gram raw frequency table'''
+    makeNgramTable(filetext, n, ngramTable)
 
+    ''' construct the n-gram relative frequency table '''
+    makeRelFreqTable(unigram_table, ngramTable, relFreqTable)
 
+    ''' Make m sentences'''
+    for x in range(m):  # for each sentence
 
-    makeNgramTable(filetext, n, lookupTable)
-    makeRelFreqTable(unigram_table, lookupTable, relFreqTable)
-    startkey = "{}".format((n-1)*start).lstrip().rstrip()
-    startword = random.choice(list(lookupTable[startkey]))
-    for x in range(m):
-        words = []
-        weights = []
-        for wordToWeight in (list(lookupTable[startkey])):
-            words.append(wordToWeight)
-            weights.append(relFreqTable[startkey][wordToWeight])
-        nextWord = random.choices(words, weights)
-        print(nextWord[0])
+        atend = False
+
+        ''' construct the startkey    (in the form <start> <start> .... <start>) having n-1 <start> tags '''
+        startkey = "{}".format((n - 1) * start).lstrip().rstrip()
+
+        ''' pick a startword at random from first words in filetext sentences '''
+        startword = random.choice(list(ngramTable[startkey]))
+        sentence = startword
+
+        ''' revise the startkey with startword '''
+        startkey = moveNgramWindow(startkey, startword, n - 1)
+
+        ''' build sentence until end detected '''
+        while not atend:
+            words = []
+            weights = []
+
+            ''' construct matching word and weight lists for current key '''
+            for ngramWordsFromKey in (list(ngramTable[startkey])):
+                words.append(ngramWordsFromKey)
+                weights.append(relFreqTable[startkey][ngramWordsFromKey])
+
+            ''' 
+            build a sentence by selecting weighted random word from words list and adding it to sentence.
+            in the except block (catches end of sentence), append sentence to sentences list
+            '''
+            try:
+                nextWordString = listToString(random.choices(words, weights=weights))
+                sentence = sentence + ' ' + nextWordString  # add next word to sentence
+
+                ''' 
+                revise startkey by appending nextWordString and trimming
+                words from the left until only n-1 words remain.
+                '''
+                startkey = moveNgramWindow(startkey, nextWordString, n - 1)
+            except:
+                atend = True  # end of sentence was detected
+
+        print(sentence)
+
 
 if __name__ == '__main__':
     main()
