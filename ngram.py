@@ -126,8 +126,8 @@ def moveNgramWindow(loopkey, nextWordString, n):
 
 def printIntroData(n, m):
     print("\nThis program generates random sentences based on an Ngram model."
-          "\nAuthored by: James M. Stallings\nVCU student ID: V00859712\n\n")
-    print("Command line settings:  {} {} {}".format(sys.argv[0], n, m))
+          "\n\nAuthored by: James M. Stallings\nVCU student ID: V00859712\n")
+    print("Command line settings:  {} {} {}\n".format(sys.argv[0], n, m))
 
 def openAndReadInputFiles():
     filetext = ""
@@ -188,8 +188,9 @@ def main():
 
             ''' construct matching word and weight lists for current key '''
             for ngramWordsFromKey in (list(ngramTable[startkey])):
-                words.append(ngramWordsFromKey)
-                weights.append(relFreqTable[startkey][ngramWordsFromKey])
+                if not ngramWordsFromKey == '':
+                    words.append(ngramWordsFromKey)
+                    weights.append(relFreqTable[startkey][ngramWordsFromKey])
 
             ''' 
             build a sentence by selecting weighted random word from words list and adding it to sentence.
@@ -206,9 +207,11 @@ def main():
                 startkey = moveNgramWindow(startkey, nextWordString, n - 1)
             except:
                 atend = True  # end of sentence was detected
-
-        print(sentence)
-
+        sentence = re.sub(r'( \.)', '.', sentence)
+        sentence = re.sub(r'( \!)', '!', sentence)
+        sentence = re.sub(r'( \?)', '?', sentence)
+        print("{}".format(sentence.capitalize()))
+    print("\n")
 
 if __name__ == '__main__':
     main()
