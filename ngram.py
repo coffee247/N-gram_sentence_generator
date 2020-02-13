@@ -2,6 +2,83 @@
 
 '''
 
+This program will allow a user to create any number of sentences constructed from
+n-grams of any order from the any given corpus of text.
+An n-gram is a sequence of N words.  The idea is to look at text as though examining
+it through a window that can display only N words at a time, ... and while sliding
+the window over the corpus of text, try to predict what the next word will be.
+
+The problem can be solved in the following way:
+1) clean the corpus of text using regex operations.
+2) create list of sentences from the corpus of text.
+3) add <start> and <end> tags to each sentence in the corpus.
+4) Construct UnigramTable (a dictionary to hold raw frequencies of
+each word in the entire corpus)
+4b) If n is 1, do skip to unigram specific solution.
+5) Construct NgramTable of raw frequencies (a nested dictionary containing n-grams in the outer dict
+and a dictionary of raw frequencies of "next words" that follow the ngram.)
+6) Construct n-gram relative frequency table (a nested dictionary  containing n-grams in the outer dict
+and a dictionary of relative frequencies of "next words" that follow the ngram.)  Relative frequencies
+being computed as ratio of ngramtable raw frequency over unigramtable raw frequency for each ngram.
+7) Construct sentences by:
+ 7a) "sliding a window of length n-1" over the corpus of text and ...
+ 7b) predicting the next word by selecting a weighted random choice from the ngram Relative
+    Frequency Table having ngram key that matches "windowed" text.
+  7c) if next word is "<end>" mark sentence complete
+  7c) if sentence not complete, Append word identifies in step 7b to current sentence
+8) as sentences are completed, append to list of sentences.
+9) display sentences.
+10) terminate program
+
+UNIGRAM specific solution:
+5) Genrate M sentences by:
+ 5a) using unigram table, generate n sentences by appending random words from unigram table.
+   Force construction of relatively short sentences by only appending random number of words.
+   Append a random sentence terminator at the end of each sentence.
+ 5b) Display sentences
+ 5c) terminate program
+
+******************************************************
+actual examples of program input and output, along with usage instructions
+
+GIVEN:
+User wishes to generate 12 sentences from n-grams of length 4 occurring in texts found in
+files called one.txt, two.txt, and three.txt
+
+USER at command line:
+     {(User will enter text after ~$ in command line as shown) Assumes terminal
+     is open in same directory as ngram.py, one.txt, two.txt, and three.txt}
+user@usersComputer:~$ python3 ngram.py 4 12 one.txt two.txt three.txt
+
+******************************************************
+Sample (toy) "test.txt":
+This is a test of the emergency broadcast system.  This is only a test.
+Had this been an actual emergency, you would have heard a siren!
+There is no actual emergency, so no siren was sounded.  Please go about your business smartly!
+Also, Don't ignore these tests, ... That would be dangerous!
+
+Sample command line input:
+python3 ngram.py 4 5 test.txt
+
+Sample output: (plagiarises)
+Had this been an actual emergency you would have heard a siren!
+This is only a test.
+Please go about your business smartly!
+Please go about your business smartly!
+Had this been an actual emergency you would have heard a siren!
+
+Sample command line input:
+python3 ngram.py 2 5 test.txt
+
+Had this is no actual emergency broadcast system.
+This is only a test of the emergency you would be dangerous!
+This is a test.
+This been an actual emergency you would have heard a siren!
+Also don't ignore these tests that would be dangerous!
+
+
+
+
 James M. Stallings
 Student ID V00859712
 
@@ -199,6 +276,7 @@ def main():
                 try:
                     nextWordString = listToString(random.choices(words, weights=weights))
                     sentence = sentence + ' ' + nextWordString  # add next word to sentence
+                    sentence = sentence.lstrip('<start> ')
 
                     ''' 
                     revise startkey by appending nextWordString and trimming
