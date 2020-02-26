@@ -1,3 +1,4 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # N-gram_sentence_generator
 
 This program will allow a user to create any number of sentences constructed from
